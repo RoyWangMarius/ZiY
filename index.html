@@ -835,19 +835,27 @@ var Music = (function () {
     timer = setTimeout(round, (total + 1.4) * 1000);
   }
 
+  // 合成音乐盒版（没有 mp3 文件时用这个）——在用户手势里直接起播
+  function startWebAudio() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { playing = false; return; }
+    if (!ctx) ctx = new AC();
+    if (ctx.state === 'suspended') ctx.resume();
+    round();
+  }
+
   return {
     start: function () {
       if (playing) return;
       playing = true;
+      // 先在手势里把 AudioContext 唤醒，mp3 缺失时回退来得及
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { if (!ctx) ctx = new AC(); if (ctx.state === 'suspended') ctx.resume(); }
       if (hasFile) {
-        el.play().catch(function () { hasFile = false; if (playing) Music.start(); });
+        el.play().catch(function () { hasFile = false; if (playing) startWebAudio(); });
         return;
       }
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) { playing = false; return; }
-      if (!ctx) ctx = new AC();
-      if (ctx.state === 'suspended') ctx.resume();
-      round();
+      startWebAudio();
     },
     stop: function () {
       playing = false;
