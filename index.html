@@ -329,7 +329,10 @@
   .poem b { display: block; margin-bottom: .5em; font-weight: 400; color: #d98e5e; font-size: 1.15em; white-space: normal; }
   .poem .em { color: #e2926f; }
   @media (max-aspect-ratio: 1/1) {
-    .map-wrap { flex-direction: column; }
+    .map-wrap {
+      flex-direction: column; justify-content: flex-start;
+      flex: 1 1 auto; min-height: 0; max-height: none;
+    }
     .map { width: min(88vw, 520px); }
     .poem { max-width: 86vw; white-space: normal; text-align: center; }
     .poem b { white-space: normal; }
@@ -385,6 +388,13 @@
     opacity: 0; pointer-events: none; transition: opacity .5s ease, transform .5s ease;
   }
   .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* 手机竖屏：换装页娃娃缩小别超出屏幕（放在 .doll-base 基础样式之后才能生效）*/
+  @media (max-aspect-ratio: 1/1) {
+    .dressup-title { max-width: 82vw; }
+    .play { gap: 4vw; }
+    .doll-base { height: auto; width: min(38vw, 190px); }
+  }
 
   /* ===== 相册（方布丁封面/封底，翻开向左平摊）===== */
   .book { position: relative; width: min(94vw, 900px); aspect-ratio: 2/1; perspective: 2200px; }
