@@ -1,0 +1,1417 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>羊羊の誕生日</title>
+<link href="https://fonts.font.im/css?family=ZCOOL+KuaiLe" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FDF8E6;
+    --brown: #7a5c43;
+    --cute: "ZCOOL KuaiLe", "YouYuan", "幼圆", "Yuanti SC", "圆体-简", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--cream);
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--brown);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* 纸纹颗粒：一层极淡的噪点盖在所有内容之上 */
+  .grain {
+    position: fixed; inset: 0; z-index: 40; pointer-events: none;
+    opacity: .3; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.2'/%3E%3C/svg%3E");
+  }
+  /* 开场暗屏，加载完成后缓缓亮起 */
+  .curtain {
+    position: fixed; inset: 0; z-index: 50;
+    background: #2b2320;
+    transition: opacity 1.8s ease;
+  }
+  .curtain.lifted { opacity: 0; pointer-events: none; }
+
+  .stage {
+    position: fixed; inset: 0;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 5vh 5vw calc(5vh + env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .stage.active { display: flex; }
+
+  .title {
+    width: min(94vw, 1200px);
+    max-height: 84vh;
+    object-fit: contain;
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 1.5s ease .4s, transform 1.5s ease .4s;
+  }
+  .lit .title { opacity: 1; transform: none; }
+  /* 蛋：第一幕唯一的东西，点三下越来越大 */
+  .egg-wrap {
+    position: relative;
+    width: 34vmin;
+    background: none; border: 0; padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 1.4s ease .3s, width 1s cubic-bezier(.34,1.4,.64,1);
+  }
+  .lit .egg-wrap { opacity: 1; }
+  .egg-wrap[data-step="1"] { width: 48vmin; }
+  .egg-wrap[data-step="2"] { width: 65vmin; }
+  .egg-wrap[data-step="3"] { width: 82vmin; }
+  .egg-wrap img { display: block; width: 100%; }
+
+  /* 壳里有东西想出来：慢慢左右摇 */
+  .wobble { display: block; animation: wobble 2.6s ease-in-out infinite; transform-origin: 50% 88%; }
+  @keyframes wobble {
+    0%, 100%   { transform: rotate(0deg); }
+    12%        { transform: rotate(-4.5deg); }
+    26%        { transform: rotate(3.5deg); }
+    38%        { transform: rotate(-2deg); }
+    50%        { transform: rotate(1deg); }
+    62%        { transform: rotate(0deg); }
+  }
+  .cracked .wobble { animation: none; }
+
+  .egg-half {
+    position: absolute; left: 0; top: 0;
+    transition: transform 1s cubic-bezier(.34,1.5,.64,1);
+  }
+  /* 自己画的一道平缓锯齿裂缝，位置压在蛋壳上部大约 26% 处 */
+  .egg-top {
+    clip-path: polygon(
+      0% 0%, 100% 0%,
+      100% 26.5%, 90% 24%, 80% 27.5%, 70% 24%, 60% 28.5%, 50% 24.5%,
+      40% 28%, 30% 24%, 20% 27.5%, 10% 23.5%, 0% 26.5%
+    );
+  }
+  .egg-bottom {
+    clip-path: polygon(
+      0% 26.5%, 10% 23.5%, 20% 27.5%, 30% 24%, 40% 28%, 50% 24.5%,
+      60% 28.5%, 70% 24%, 80% 27.5%, 90% 24%, 100% 26.5%,
+      100% 100%, 0% 100%
+    );
+  }
+  .egg-shadow { visibility: hidden; }
+  .cracked .egg-top    { transform: translate(-14%, -52%) rotate(-26deg); }
+  .cracked .egg-bottom { transform: translate(10%, 26%) rotate(10deg); }
+  .cracked .egg-wrap   { cursor: default; }
+
+  /* 裂开瞬间的白屏 */
+  .flash {
+    position: fixed; inset: 0; z-index: 45;
+    background: #fff; opacity: 0; pointer-events: none;
+    transition: opacity .55s ease;
+  }
+  .flash.on { opacity: 1; }
+
+  /* 右上角音乐开关 */
+  .music-btn {
+    position: fixed; top: calc(2.4vh + env(safe-area-inset-top)); right: 4vw;
+    z-index: 46;
+    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; padding: 0;
+    color: #8a6f55;
+    background: rgba(255, 255, 255, .5);
+    border: 1.5px solid #e2d2b4; border-radius: 50%;
+    cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity 1s ease, color .3s ease, border-color .3s ease;
+  }
+  .music-btn.shown { opacity: 1; pointer-events: auto; }
+  .music-btn.off { color: #bcab92; border-color: #ede4d1; }
+  .music-btn .ico {
+    width: 21px; height: 21px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .music-btn .ico-off { display: none; }
+  .music-btn.off .ico-on { display: none; }
+  .music-btn.off .ico-off { display: block; }
+  /* 第三幕：等你录语音/视频的占位框 */
+  .slot {
+    width: min(86vw, 720px);
+    aspect-ratio: 16 / 10;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px dashed #dfcfae; border-radius: 22px;
+    color: #b7a68d; font-size: 14px; letter-spacing: .08em;
+    background: rgba(255, 255, 255, .32);
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 1.2s ease .2s, transform 1.2s ease .2s;
+  }
+  /* 第三幕：视频 */
+  .voice-box {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    width: min(88vw, 560px);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 1.1s ease .2s, transform 1.1s ease .2s;
+  }
+  .lit .voice-box { opacity: 1; transform: none; }
+  .voice-video {
+    width: 100%; max-height: 64vh; border-radius: 18px;
+    background: #efe6d2; border: 2px solid #ecdcbe;
+    box-shadow: 0 12px 30px rgba(122,92,67,.16);
+  }
+  .voice-note {
+    margin: 0; max-width: 92%; text-align: center;
+    font-family: var(--cute); color: #7a5c43; line-height: 1.9;
+    font-size: clamp(14px, 1.9vw, 17px);
+  }
+  .lit .slot { opacity: 1; transform: none; }
+  @supports not (aspect-ratio: 1) { .slot { height: 54vh; } }
+
+  /* 第四幕：礼物盒 */
+  .gift {
+    position: relative;
+    width: min(66vw, 480px);
+    margin-right: 22%;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 1.2s ease .2s, transform 1.2s ease .2s;
+  }
+  .lit .gift { opacity: 1; transform: none; }
+  .gift img { display: block; width: 100%; }
+  .gift-closed {
+    position: relative; z-index: 3;
+    background: none; border: 0; padding: 0; width: 100%;
+    cursor: pointer;
+    transition: opacity .7s ease, transform .9s ease;
+  }
+  .gift-open, .gift-lid {
+    position: absolute; left: 0; top: 0;
+    opacity: 0;
+    transition: opacity .8s ease .35s, transform 1.1s cubic-bezier(.34,1.4,.64,1) .2s;
+  }
+  .gift-open { z-index: 1; }
+  .gift-lid  { z-index: 2; }
+  .opened .gift-closed { opacity: 0; transform: scale(.97); pointer-events: none; }
+  .opened .gift-open { opacity: 1; }
+  .opened .gift-lid {
+    opacity: 1;
+    transform: translate(82%, 24%) rotate(6deg) scale(.76);
+  }
+  /* 盒子内部：礼物一件件摆进来，信封在正中间且可点 */
+  .gift-inner {
+    position: absolute; z-index: 2;
+    left: 16%; top: 16%; width: 68%; height: 66%;
+  }
+  .gift-inner .item {
+    position: absolute;
+    left: var(--x); top: var(--y);
+    width: var(--w);
+    transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+    opacity: 0;
+    transition: opacity .5s ease, transform .8s cubic-bezier(.34,1.5,.64,1);
+  }
+  .gift-inner .item img { display: block; width: 100%; }
+  .opened .gift-inner .item {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+  }
+  .gift-inner .item {
+    transform: translate(-50%, calc(-50% - 16%)) rotate(var(--r, 0deg)) scale(.84);
+  }
+  /* 依次落进盒子 */
+  .opened .gift-inner .item:nth-child(1) { transition-delay: .85s; }
+  .opened .gift-inner .item:nth-child(2) { transition-delay: 1s; }
+  .opened .gift-inner .item:nth-child(3) { transition-delay: 1.15s; }
+  .opened .gift-inner .item:nth-child(4) { transition-delay: 1.3s; }
+
+  /* 中间的信封：可点，会轻轻呼吸提示可点击 */
+  .gift-inner .env {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    z-index: 5;
+  }
+  .opened .gift-inner .env { animation: envPulse 2.2s ease-in-out 1.8s infinite; }
+  @keyframes envPulse {
+    0%, 100% { filter: drop-shadow(0 3px 6px rgba(122,92,67,.15)); }
+    50%      { filter: drop-shadow(0 6px 14px rgba(226,146,111,.4)); transform: translate(-50%, -50%) rotate(var(--r,0deg)) scale(1.05); }
+  }
+  .env-tip {
+    position: absolute; left: 50%; bottom: -6%;
+    transform: translateX(-50%);
+    font-size: clamp(11px, 1.5vw, 13px); color: #a08a72; white-space: nowrap;
+    opacity: 0; transition: opacity .8s ease 2.2s;
+  }
+  .opened .env-tip { opacity: 1; }
+
+  /* 开盖后底部的一句话 */
+  .gift-caption {
+    margin-top: 3vh;
+    font-family: var(--cute);
+    font-size: clamp(14px, 2vw, 19px); color: #7a5c43; letter-spacing: .04em;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 1s ease, transform 1s ease;
+  }
+  .gift-caption.show { opacity: 1; transform: none; }
+
+  /* ===== 第六幕：展开的信（排版文字版）===== */
+  .letter {
+    width: min(90vw, 640px); max-height: 82vh; overflow-y: auto;
+    padding: clamp(24px, 4.5vw, 48px);
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 37px, rgba(122,92,67,.06) 37px 38px),
+      rgba(255,255,255,.62);
+    border: 2px solid #ecdcbe; border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(122,92,67,.13);
+    text-align: left; font-family: var(--cute); color: #6f573f;
+    line-height: 1.95; font-size: clamp(14px, 1.9vw, 17px);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 1.2s ease .2s, transform 1.2s ease .2s;
+  }
+  .lit .letter { opacity: 1; transform: none; }
+  .letter h2 { margin: 0 0 1em; font-size: clamp(17px, 2.5vw, 22px); font-weight: 400; color: #7a5c43; letter-spacing: .04em; }
+  .letter p { margin: 0 0 1em; }
+  .letter .em { color: #e2926f; }
+  .letter .aside { color: #b98f6a; font-size: .9em; }
+  .letter ul { margin: 0 0 1em; padding-left: 1.4em; }
+  .letter li { margin-bottom: .35em; }
+  .letter .sign { text-align: right; margin-top: 1.6em; color: #a07d57; }
+
+  /* ===== 第七幕：蜡笔中国地图 ===== */
+  .map-wrap {
+    display: flex; align-items: center; justify-content: center;
+    gap: clamp(10px, 3vw, 40px);
+    width: 100%; max-height: 100%; overflow-y: auto; padding: 2vh 1vw;
+  }
+  .map { position: relative; flex: 0 0 auto; width: min(78vw, 620px); }
+  .map > img { display: block; width: 100%; }
+  .map-fallback {
+    width: 100%; aspect-ratio: 4/3;
+    border: 2px dashed #dfcfae; border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    color: #b7a68d; font-size: 14px;
+  }
+  .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .map-svg line {
+    stroke: #b98f6a; stroke-width: .5; stroke-dasharray: 2.2 2.2; stroke-linecap: round;
+    opacity: 0; transition: opacity 1s ease 1.1s;
+  }
+  .lit .map-svg line { opacity: 1; }
+  .arc-text {
+    font-family: var(--cute); fill: #7a5c43; font-size: 4.6px; letter-spacing: .12em;
+    opacity: 0; transition: opacity 1s ease 1.3s;
+  }
+  .lit .arc-text { opacity: 1; }
+  .pin {
+    position: absolute; left: var(--x); top: var(--y);
+    transform: translate(-50%,-100%);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    font-family: var(--cute); font-size: clamp(11px,1.5vw,15px); color: #7a5c43; white-space: nowrap;
+    opacity: 0; transition: opacity .8s ease var(--d,.6s);
+  }
+  .lit .pin { opacity: 1; }
+  .pin b { font-weight: 400; letter-spacing: .05em; }
+  .pin small { color: #a08a72; font-size: .78em; }
+  .pin i { width: 9px; height: 9px; border-radius: 50%; background: #e2926f; border: 1.5px solid #fff8ec; margin-top: 2px; }
+  .pin.home i { background: #d9a13a; }
+  .dist {
+    position: absolute; left: var(--x); top: var(--y);
+    transform: translate(-50%,-50%) rotate(-8deg);
+    padding: 3px 10px; font-family: var(--cute); font-size: clamp(10px,1.2vw,13px); color: #8a6f55;
+    background: rgba(255,255,255,.72); border: 1.5px solid #ecdcbe; border-radius: 999px;
+    opacity: 0; transition: opacity .9s ease 1.6s;
+  }
+  .lit .dist { opacity: 1; }
+  .poem {
+    flex: 0 1 auto; max-width: 30vw;
+    font-family: var(--cute); color: #7a5c43;
+    font-size: clamp(12px, 1.5vw, 16px); line-height: 2.1;
+    text-align: left; white-space: nowrap;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 1.1s ease .6s, transform 1.1s ease .6s;
+  }
+  .lit .poem { opacity: 1; transform: none; }
+  .poem b { display: block; margin-bottom: .5em; font-weight: 400; color: #d98e5e; font-size: 1.15em; white-space: normal; }
+  .poem .em { color: #e2926f; }
+  @media (max-aspect-ratio: 1/1) {
+    .map-wrap { flex-direction: column; }
+    .map { width: min(88vw, 520px); }
+    .poem { max-width: 86vw; white-space: normal; text-align: center; }
+    .poem b { white-space: normal; }
+  }
+  /* ===== 换装小游戏 ===== */
+  .dressup {
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%; height: 100%; padding: 3vh 2vw calc(2vh + env(safe-area-inset-bottom));
+    gap: 1.5vh;
+  }
+  .dressup-title { margin: 0; font-family: var(--cute); font-size: clamp(16px,2.4vw,22px); color: #7a5c43; }
+  .play {
+    position: relative; flex: 1 1 auto; width: min(96vw, 940px);
+    display: flex; justify-content: center; align-items: center; gap: clamp(12px,5vw,70px);
+    touch-action: none;
+  }
+  .doll-base { height: min(42vh, 300px); width: auto; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+  .drag-clone {
+    position: absolute; left: 0; top: 0; height: auto;
+    user-select: none; -webkit-user-drag: none; touch-action: none;
+    cursor: grab; filter: drop-shadow(0 3px 5px rgba(122,92,67,.18));
+    transition: transform .12s ease;
+  }
+  .drag-clone.grabbing { cursor: grabbing; transform: scale(1.04); }
+  .tray {
+    display: flex; gap: 10px; overflow-x: auto; max-width: 96vw;
+    padding: 8px 10px; background: rgba(255,255,255,.45);
+    border: 1.5px solid #ecdcbe; border-radius: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tray-item {
+    height: clamp(52px, 9vw, 78px); width: auto; flex: 0 0 auto;
+    cursor: grab; user-select: none; -webkit-user-drag: none;
+    padding: 4px; border-radius: 10px; transition: background .2s ease;
+  }
+  .tray-item:hover { background: rgba(226,146,111,.14); }
+  .dressup-btns { display: flex; gap: 12px; }
+  .reset-btn, .done-btn {
+    font-family: var(--cute); font-size: clamp(12px,1.6vw,15px);
+    padding: 6px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .reset-btn { color: #8a6f55; background: rgba(255,255,255,.6); border: 1.5px solid #e2d2b4; }
+  .done-btn { color: #fff; background: #e2926f; border: 1.5px solid #d97f5a; }
+
+  /* 撒花提示 toast */
+  .toast {
+    position: fixed; left: 50%; top: 50%; z-index: 60;
+    transform: translate(-50%,-50%) scale(.9);
+    padding: 16px 26px; font-family: var(--cute);
+    font-size: clamp(16px,2.4vw,22px); color: #7a5c43;
+    background: rgba(255,255,255,.92); border: 2px solid #f0dcc0; border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(122,92,67,.18);
+    opacity: 0; pointer-events: none; transition: opacity .5s ease, transform .5s ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+
+  /* ===== 相册（方布丁封面/封底，翻开向左平摊）===== */
+  .book { position: relative; width: min(94vw, 900px); aspect-ratio: 2/1; perspective: 2200px; }
+  /* 封面/封底/内页都叠在同一块"页位"上（偏右），铰在左缘(50%)，翻开向左摊到正中 */
+  .book-cover, .back-cover, .leaf {
+    position: absolute; top: -3%; bottom: -3%; left: 50%; width: 46%;
+    transform-origin: left center;
+  }
+  .back-cover { z-index: 10; display: flex; align-items: center; justify-content: center; transition: opacity .6s ease; }
+  .back-cover img { width: 100%; height: 100%; object-fit: contain; }
+  /* 合到封底：封面翻到最左(背面=干净布丁)盖住内页，右边的底板隐去，只剩左边一块干净布丁 */
+  .book.sealed .book-cover { transform: rotateY(-180deg); }
+  .book.sealed .back-cover { opacity: 0; }
+  /* 中间线圈：在页位左缘(50%) */
+  .rings {
+    position: absolute; top: 24%; bottom: 24%; left: 50%; transform: translateX(-50%);
+    width: 18px; display: flex; flex-direction: column; justify-content: space-around;
+    align-items: center; z-index: 46; opacity: 0; transition: opacity .5s ease .35s;
+  }
+  .book.opened .rings { opacity: 1; }
+  .rings span { width: 16px; height: 16px; border-radius: 50%; border: 3px solid #c7ad82; background: rgba(255,255,255,.4); }
+  /* 内页：白色照片位，比布丁小一圈，落在布丁身体中间，绕线圈向左翻 */
+  .leaf {
+    transform: rotateY(0deg);
+    transition: transform .85s ease, opacity .4s ease;
+    transform-style: preserve-3d; z-index: 30; opacity: 0;
+  }
+  .book.opened .leaf { opacity: 1; }
+  .leaf.turned { transform: rotateY(-179deg); }
+  .leaf .face {
+    position: absolute; inset: 30% 24% 16% 24%; backface-visibility: hidden;
+    border-radius: 8px; overflow: hidden;
+    background: rgba(255,255,255,.95); border: 1.5px dashed #cdb98d;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--cute); color: #a98f63; font-size: clamp(11px,1.5vw,14px); text-align: center;
+  }
+  .leaf .face.back { transform: rotateY(180deg); }
+  .leaf .face img { width: 100%; height: 100%; object-fit: cover; }
+  /* 一页放上下两张横图 */
+  .leaf .face.pair { flex-direction: column; gap: 5%; padding: 4%; }
+  /* 临时编号角标：方便你报出要调整的照片，定稿前会删掉 */
+  .ph-wrap { position: relative; width: 100%; height: 100%; }
+  .leaf .face.pair .ph-wrap { height: 47%; }
+  .ph-wrap img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
+  /* 个别照片裁切位置微调 */
+  .ph-wrap img[src*="/05."] { object-position: center 5%; }
+  .ph-wrap img[src*="/58."] { object-position: center 10%; }
+  .ph-wrap img[src*="/59."] { object-position: center 5%; }
+  .ph-wrap img[src*="/65."] { object-position: center 8%; }
+  .ph-num {
+    position: absolute; left: 4px; top: 4px; z-index: 3;
+    min-width: 20px; padding: 1px 5px;
+    font: 600 12px/1.5 system-ui, sans-serif; color: #fff; text-align: center;
+    background: rgba(226,146,111,.92); border-radius: 999px;
+  }
+  /* 布丁封面：两面——正面带娃娃，翻开后露出的背面是干净布丁 */
+  .book-cover { z-index: 100; cursor: pointer; transition: transform .95s ease; transform: rotateY(0deg); transform-style: preserve-3d; }
+  .book-cover .cface { position: absolute; inset: 0; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; }
+  .book-cover .cface img { width: 100%; height: 100%; object-fit: contain; }
+  .book-cover .cface.back { transform: rotateY(180deg); }
+  .book-cover.open { transform: rotateY(-168deg); }
+  /* ===== 留言簿 ===== */
+  .gb-wrap {
+    width: min(94vw, 680px); max-height: 86vh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 12px;
+    padding: 0 2vw calc(2vh + env(safe-area-inset-bottom));
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 1s ease .2s, transform 1s ease .2s;
+  }
+  .lit .gb-wrap { opacity: 1; transform: none; }
+  .gb-title { margin: 0; text-align: center; font-family: var(--cute); color: #7a5c43; font-size: clamp(18px,2.6vw,24px); }
+  .gb-sub { margin: -6px 0 0; text-align: center; font-family: var(--cute); color: #b7a68d; font-size: clamp(11px,1.5vw,13px); }
+  .gb-head {
+    position: sticky; top: 0; z-index: 6;
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 2vh 0 10px; margin-bottom: 2px;
+    background: var(--cream);
+    box-shadow: 0 6px 10px -6px rgba(122,92,67,.18);
+  }
+  .gb-bar {
+    display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap;
+    font-family: var(--cute); color: #8a6f55; font-size: 13px;
+  }
+  .gb-bar input[type="date"] {
+    font-family: var(--cute); font-size: 13px; color: #6f573f; background: #fffdf7;
+    border: 1.5px solid #ecdcbe; border-radius: 999px; padding: 5px 10px;
+  }
+  .gb-chip {
+    font-family: var(--cute); font-size: 13px; color: #8a6f55; background: rgba(255,255,255,.7);
+    border: 1.5px solid #e2d2b4; border-radius: 999px; padding: 5px 12px; cursor: pointer;
+  }
+  .gb-list { display: flex; flex-direction: column; gap: 12px; }
+  .gb-empty { text-align: center; color: #bcab92; font-family: var(--cute); padding: 18px 0; }
+  .gb-card {
+    background: rgba(255,255,255,.72); border: 1.5px solid #ecdcbe; border-radius: 14px;
+    padding: 12px 14px; box-shadow: 0 6px 16px rgba(122,92,67,.08);
+    scroll-margin-top: 10px;
+  }
+  .gb-card.flash { animation: gbFlash 1.6s ease; }
+  @keyframes gbFlash { 0%,100%{ box-shadow:0 6px 16px rgba(122,92,67,.08);} 30%{ box-shadow:0 0 0 3px #f0c49c, 0 6px 16px rgba(226,146,111,.3);} }
+  .gb-card .gb-text { font-family: var(--cute); color: #6f573f; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .gb-card img { margin-top: 8px; width: 100%; max-height: 56vh; object-fit: contain; border-radius: 10px; display: block; background: #f7f0e1; }
+  .gb-card .gb-meta { margin-top: 6px; font-size: 11px; color: #b7a68d; text-align: right; }
+
+  /* 浮动"写留言"按钮 + 弹出面板 */
+  .gb-fab {
+    position: fixed; right: 5vw; bottom: calc(4vh + env(safe-area-inset-bottom)); z-index: 55;
+    font-family: var(--cute); font-size: 15px; color: #fff; background: #e2926f;
+    border: 1.5px solid #d97f5a; border-radius: 999px; padding: 10px 20px; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(226,146,111,.4);
+  }
+  .gb-mask {
+    position: fixed; inset: 0; z-index: 56; background: rgba(90,70,50,.28);
+    opacity: 0; pointer-events: none; transition: opacity .3s ease;
+  }
+  .gb-mask.show { opacity: 1; pointer-events: auto; }
+  .gb-compose {
+    position: fixed; left: 50%; bottom: 0; z-index: 57;
+    width: min(96vw, 560px); transform: translate(-50%, 110%);
+    background: #fffdf7; border: 2px solid #ecdcbe; border-radius: 18px 18px 0 0;
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 -8px 28px rgba(122,92,67,.18); transition: transform .35s ease;
+  }
+  .gb-compose.show { transform: translate(-50%, 0); }
+  .gb-compose-head { display: flex; align-items: center; justify-content: space-between; font-family: var(--cute); color: #7a5c43; font-size: 15px; }
+  .gb-compose-head button { font-size: 20px; line-height: 1; color: #b7a68d; background: none; border: 0; cursor: pointer; }
+  .gb-compose textarea {
+    width: 100%; min-height: 72px; resize: vertical; box-sizing: border-box;
+    border: 1.5px solid #ecdcbe; border-radius: 10px; padding: 8px 10px;
+    font-family: var(--cute); font-size: 15px; color: #6f573f; background: #fffdf7;
+  }
+  .gb-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .gb-row input[type="text"] {
+    flex: 1 1 120px; min-width: 100px; box-sizing: border-box;
+    border: 1.5px solid #ecdcbe; border-radius: 999px; padding: 7px 12px;
+    font-family: var(--cute); font-size: 14px; color: #6f573f; background: #fffdf7;
+  }
+  .gb-btn {
+    font-family: var(--cute); font-size: 14px; color: #fff; background: #e2926f;
+    border: 1.5px solid #d97f5a; border-radius: 999px; padding: 7px 18px; cursor: pointer;
+  }
+  .gb-filebtn {
+    font-family: var(--cute); font-size: 13px; color: #8a6f55; background: rgba(255,255,255,.7);
+    border: 1.5px solid #e2d2b4; border-radius: 999px; padding: 7px 12px; cursor: pointer;
+  }
+  .gb-preview { max-height: 110px; border-radius: 8px; display: none; }
+  .gb-note { font-size: 11px; color: #b7a68d; font-family: var(--cute); text-align: center; }
+/* CHUNK-3 */
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<button class="music-btn" id="musicBtn" aria-label="关闭音乐">
+  <svg class="ico ico-on" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4.5 9.5h3l4.5-3.5v12l-4.5-3.5h-3z"/>
+    <path d="M15.8 9c1.3 1.1 1.3 4.9 0 6"/>
+    <path d="M18.4 6.6c2.4 2.2 2.4 8.6 0 10.8"/>
+  </svg>
+  <svg class="ico ico-off" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4.5 9.5h3l4.5-3.5v12l-4.5-3.5h-3z"/>
+    <path d="M16 9.5l5 5"/>
+    <path d="M21 9.5l-5 5"/>
+  </svg>
+</button>
+
+
+<!-- 第一幕：暗屏亮起 → 一颗摇摆的蛋 → 点三下 → 裂开 → 白屏 -->
+<section class="stage active" id="sceneEgg">
+  <button class="egg-wrap" id="egg" data-step="0" aria-label="敲一下羊羊蛋">
+    <span class="wobble" id="wobble">
+      <img class="egg-shadow" src="images/egg-transparent.png" alt="">
+      <img class="egg-half egg-top" src="images/egg-transparent.png" alt="">
+      <img class="egg-half egg-bottom" src="images/egg-transparent.png" alt="">
+    </span>
+  </button>
+  <p class="hint" id="hint"><span class="dot"></span><span id="hintText">敲一下羊羊蛋</span></p>
+</section>
+
+<!-- 第二幕：写了字的首页 -->
+<section class="stage" id="sceneTitle">
+  <img class="title" src="images/home-title-transparent.png"
+       alt="羊羊の誕生日 Happy Birthday to ZiY! From 瓜瓜">
+</section>
+
+<!-- 第三幕：视频 -->
+<section class="stage" id="sceneVoice">
+  <div class="voice-box">
+    <video class="voice-video" src="video/voice.mp4" controls playsinline preload="metadata"></video>
+    <p class="voice-note">本来有一堆话要讲的！但是对着镜头太尴尬了！还是就讲一句生日快乐好了ヽ(≧Д≦)ノ</p>
+  </div>
+  <p class="hint"><span class="dot"></span>往下滑，继续</p>
+</section>
+
+<!-- 第四幕：礼物盒，点一下开盖 -->
+<section class="stage" id="sceneGift">
+  <div class="gift" id="gift">
+    <img class="gift-open" src="images/gift-open-transparent.png" alt="">
+    <img class="gift-lid" src="images/gift-lid-transparent.png" alt="">
+    <div class="gift-inner">
+      <span class="item" style="--x:27%; --y:30%; --w:48%; --r:-5deg">
+        <img src="images/sheepdoll-transparent.png" alt="小羊娃娃">
+      </span>
+      <span class="item" style="--x:73%; --y:30%; --w:40%; --r:5deg">
+        <img src="images/penguin-transparent.png" alt="企鹅玩偶">
+      </span>
+      <span class="item" style="--x:74%; --y:70%; --w:42%; --r:4deg">
+        <img src="images/bouquet-transparent.png" alt="一束花">
+      </span>
+      <button class="item env" id="giftEnv" style="--x:26%; --y:70%; --w:46%; --r:-4deg"
+              aria-label="打开这封信">
+        <img src="images/envelope-transparent.png" alt="一封信">
+      </button>
+    </div>
+    <button class="gift-closed" id="giftBtn" aria-label="点一下打开礼物盒">
+      <img src="images/gift-closed-transparent.png" alt="一个绿色的礼物盒">
+    </button>
+  </div>
+  <p class="hint" id="giftHint"><span class="dot"></span><span id="giftHintText">点一下打开礼物盒</span></p>
+  <p class="gift-caption" id="giftCaption">现在寿星羊羊可以拆开礼物啦~</p>
+</section>
+
+<!-- 第六幕：展开的信 -->
+<section class="stage" id="sceneLetter">
+  <div class="letter">
+    <h2>To 宇宙超级无敌尊贵的大寿星 张扬同学：</h2>
+    <p>你好呀 ZiY~<br>
+       22 岁生日快乐！Happy Birthday to ZiY~<br>
+       唉！真是岂有此理，我们的大寿星居然还要飞去北京过生日！真搞笑！我居然又不能当面陪你过生日 （｀Δ´）！<br>
+       瓜很生气，但瓜是一个无能的瓜 TAT<br>
+       「可惜不是瓜~陪羊过生日~」<span class="aside">（请自行想象唱出来的音调 ↳《非诚勿扰》淘汰 BGM）</span></p>
+    <p>唉，但没关系，虽然瓜人不在，但瓜的祝福在呀！<br>
+       祝 我们的羊羊大寿星 生日快乐~</p>
+    <p>首先羊羊要暴富！<span class="aside">os：真希望 ZiY 发大财然后包养我……</span><br>
+       然后羊羊要健健康康的~不要老是感冒发烧、鼻炎结膜炎了 (,,Ծ‸Ծ,, )<br>
+       还有呢！很重要的一个就是——羊大状元考试顺利！张扬同学直接就是金榜题名，一举高中，一飞冲天！！！羊羊想去哪上学就去哪！</p>
+    <p>天呐！这样一想，那明年岂不是我在上班、你还在上学吗？我要变成 office lady 了，你居然还是 student！希望我到时候能给你开 50 块一个月的亲属卡（我最大方的时候）。</p>
+    <p>当然，我最希望羊羊能好好爱自己！可能是瓜太久不得谈恋爱了，我好像已经很久没有因为一个人而影响到自己的情绪了……所以每次看见羊羊因为男人难过，我都特别想杀人！(눈_눈) 我只想看羊羊每天都笑嘻嘻的（和我待在一起的那样！）</p>
+    <p>最后！我希望我们两个可以多多见面，卢姆儿也是！哈哈哈哈 我一想到你坤上了卢姆儿我就觉得搞笑——以前极力推荐你坤的时候你鸟都不鸟我！我们两个也要爱能克服远距离~</p>
+    <!-- PAGE2 -->
+    <p>嘿嘿，然后你有没有感觉我做的这个还不错？<br>
+       瓜本次「为羊庆生计划」的前置条件有：</p>
+    <ul>
+      <li>瓜实习中，有微薄的实习工资补贴；</li>
+      <li>瓜实习中，可以偷用公司的聪明 AI 来做网站；</li>
+      <li>瓜的勤劳人格战胜了拖延人格，有时间完成！</li>
+    </ul>
+    <p>瓜本次的计划设计主要考虑点：</p>
+    <ul>
+      <li>需要非消耗品，最好是能够一直陪着羊羊的；</li>
+      <li>需要独特，不能是别人送过的，要是独一无二的！</li>
+      <li>需要便于保存，比如这个网站，羊羊专属的！可以一直保存！<span class="aside">（毕竟 ZiY 是一个丢三落四的猪）</span></li>
+      <li>羊羊没接触过这些，会觉得瓜很厉害，很崇拜瓜神！</li>
+      <li>羊羊能发 puq 装逼：「天，瓜好棒，大家快看瓜给我做的专属生日网站，还有 ZiY 的棉花娃娃，你们都没有酱瓜用心，瓜是冠军！」</li>
+    </ul>
+    <p><span class="aside">瓜评论：哎呀，羊羊桑的笑颜才是我心目中的第一位~</span></p>
+    <p>哈哈哈 其实这也是我第一次做这种网站，内容都是自己想的（瓜脑），所以肯定有不完美的地方<span class="aside">（羊羊：没有，特别完美（哭腔））</span></p>
+    <p>我希望羊羊能够喜欢这份礼物！希望瓜瓜可以让羊羊的 22 岁生日变得更难忘！<br>
+       <span class="em">生日快乐 张扬~</span><br>
+       瓜瓜会一直陪着你的！我们要做一辈子的家人~</p>
+    <p class="sign">—— 爱你的蒋瓜<br>2026.10.25</p>
+  </div>
+  <p class="hint"><span class="dot"></span>往下滑，继续</p>
+</section>
+
+<!-- 第七幕：我们隔了多远 -->
+<section class="stage" id="sceneMap">
+  <div class="map-wrap">
+    <div class="poem poem-left">
+      <b>我们的距离</b>
+      从隔着一扇教室门<br>
+      到隔着一面寝室墙<br>
+      到隔着一条过道<br>
+      到隔着两件睡衣<br>
+      到睡在一张床上<br>
+      到两个考场<br>
+      再到两个直线距离快一千米的城市<br>
+      <span class="em">但下次见面就又会变成 0 米！</span><br>
+      所以~期待下次见面吧~
+    </div>
+
+    <div class="map">
+      <img id="mapImg" src="images/map-transparent.png" alt="蜡笔画的中国地图"
+           onerror="this.style.display='none';document.getElementById('mapFallback').style.display='flex';">
+      <div class="map-fallback" id="mapFallback" style="display:none">地图还没画出来（出图服务恢复后补上）</div>
+      <svg class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <path id="arcPath" d="M 22 48 Q 48 33 76 48" fill="none"></path>
+        <text class="arc-text"><textPath href="#arcPath" startOffset="50%" text-anchor="middle">我们未来会一起去的地方</textPath></text>
+        <line x1="54" y1="60" x2="66" y2="76"></line>
+      </svg>
+      <span class="pin" style="--x:54%; --y:60%; --d:.85s">
+        <b>重庆</b><small>你上学的地方</small><i></i>
+      </span>
+      <span class="pin home" style="--x:52%; --y:68%; --d:.6s">
+        <b>贵阳</b><small>我们的家</small><i></i>
+      </span>
+      <span class="pin" style="--x:66%; --y:76%; --d:1.1s">
+        <b>广州</b><small>我上学的地方</small><i></i>
+      </span>
+      <span class="dist" style="--x:63%; --y:65%">979 公里</span>
+    </div>
+
+    <div class="poem poem-right">
+      我们要一起上课<br>
+      一起逃课<br>
+      一起熬夜<br>
+      一起睡懒觉<br>
+      一起喝酒玩游戏<br>
+      一起坐火车坐高铁坐飞机<br>
+      一起爬山<br>
+      一起看日出看日落<br>
+      一起踩沙滩看海<br>
+      一起做任何事情<br>
+      <span class="em">只要是我们一起~</span>
+    </div>
+  </div>
+</section>
+
+<!-- 第八幕：换装小游戏 -->
+<section class="stage" id="sceneDressup">
+  <div class="dressup">
+    <p class="dressup-title">请打扮一下她们，这里我扮演的是一个刻薄的继母，不给她们准备合身的衣服</p>
+    <div class="play" id="playArea">
+      <img class="doll-base" src="images/doll-sheep-tight.png" alt="小羊娃娃">
+      <img class="doll-base" src="images/doll-dog-tight.png" alt="小狗娃娃">
+    </div>
+    <div class="tray" id="tray">
+      <img class="tray-item" src="images/dress-blue-t.png" data-w="22" alt="蓝裙子">
+      <img class="tray-item" src="images/dress-pink-t.png" data-w="22" alt="粉裙子">
+      <img class="tray-item" src="images/jersey-spurs-t.png" data-w="22" alt="白球衣">
+      <img class="tray-item" src="images/jersey-city-t.png" data-w="22" alt="蓝球衣">
+      <img class="tray-item" src="images/overalls-t.png" data-w="19" alt="背带裤">
+      <img class="tray-item" src="images/skirt-plaid-t.png" data-w="16" alt="短裙">
+      <img class="tray-item" src="images/sweater-t.png" data-w="18" alt="毛衣">
+      <img class="tray-item" src="images/pants-t.png" data-w="16" alt="裤子">
+      <img class="tray-item" src="images/acc-bows-t.png" data-w="12" alt="发结">
+      <img class="tray-item" src="images/acc-flower-t.png" data-w="9" alt="发夹">
+      <img class="tray-item" src="images/acc-shoes-t.png" data-w="13" alt="小鞋">
+    </div>
+    <div class="dressup-btns">
+      <button class="reset-btn" id="resetDressup">收拾干净</button>
+      <button class="done-btn" id="doneDressup">换好了</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- 第九幕：相册（布丁外壳，翻书式）-->
+<section class="stage" id="sceneAlbum">
+  <div class="book" id="book">
+    <!-- 封底：最底层的方布丁（无娃娃） -->
+    <div class="back-cover"><img src="images/album-back-t.png" alt="布丁封底"></div>
+    <!-- 中间线圈 -->
+    <div class="rings"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <!-- 内页：白色照片位，绕线圈向左翻（由脚本按照片生成）-->
+    <div class="leaves" id="leaves"></div>
+    <!-- 封面：正面带娃娃，背面是干净布丁 -->
+    <div class="book-cover" id="bookCover">
+      <div class="cface front"><img src="images/album-cover-t.png" alt="布丁相册封面"></div>
+      <div class="cface back"><img src="images/album-back-t.png" alt=""></div>
+    </div>
+  </div>
+  <p class="hint" id="albumHint"><span class="dot"></span><span id="albumHintText">点一下翻开相册</span></p>
+</section>
+
+<!-- 第十幕：留言簿 -->
+<section class="stage" id="sceneGuestbook">
+  <div class="gb-wrap" id="gbWrap">
+    <div class="gb-head">
+      <h2 class="gb-title">小牛一家的秘密基地</h2>
+      <div class="gb-bar">
+        <label>跳到日期 <input type="date" id="gbDate"></label>
+        <button class="gb-chip" id="gbLatest">回到最新</button>
+      </div>
+    </div>
+    <div class="gb-list" id="gbList"><p class="gb-empty">还没有留言，来写第一条吧~</p></div>
+  </div>
+
+  <button class="gb-fab" id="gbFab">✎ 写留言</button>
+  <div class="gb-mask" id="gbMask"></div>
+  <div class="gb-compose" id="gbCompose">
+    <div class="gb-compose-head"><span>写条留言 ♡</span><button id="gbClose" aria-label="收起">×</button></div>
+    <textarea id="gbText" placeholder="今天想说点什么呢~"></textarea>
+    <img class="gb-preview" id="gbPreview" alt="预览">
+    <div class="gb-row">
+      <label class="gb-filebtn">加张图片<input type="file" id="gbFile" accept="image/*" hidden></label>
+      <input type="text" id="gbPass" placeholder="口令（写留言需要）">
+      <button class="gb-btn" id="gbSend">贴上去</button>
+    </div>
+    <p class="gb-note" id="gbNote"></p>
+  </div>
+</section>
+
+<div class="toast" id="toast">你很用心地在打扮我们 ^o^</div>
+
+<div class="flash" id="flash"></div>
+<div class="curtain" id="curtain"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@cloudbase/js-sdk@1.7.2/dist/index.umd.js"></script>
+<script>
+// 生日快乐歌。优先用 audio/bgm.mp3；没有这个文件就用 Web Audio 合成音乐盒版本
+var Music = (function () {
+  var BEAT = 0.42;
+  var N = { G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99 };
+  var TUNE = [
+    [N.G4, .75], [N.G4, .25], [N.A4, 1], [N.G4, 1], [N.C5, 1], [N.B4, 2],
+    [N.G4, .75], [N.G4, .25], [N.A4, 1], [N.G4, 1], [N.D5, 1], [N.C5, 2],
+    [N.G4, .75], [N.G4, .25], [N.G5, 1], [N.E5, 1], [N.C5, 1], [N.B4, 1], [N.A4, 2],
+    [N.F5, .75], [N.F5, .25], [N.E5, 1], [N.C5, 1], [N.D5, 1], [N.C5, 2]
+  ];
+
+  var el = new Audio('audio/bgm.mp3');
+  el.loop = true; el.volume = .45;
+  var hasFile = true;
+  el.addEventListener('error', function () { hasFile = false; });
+
+  var ctx = null, timer = null, playing = false;
+
+  function ping(freq, at, dur) {
+    var osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.16, at + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + Math.max(dur, 0.25));
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(at); osc.stop(at + Math.max(dur, 0.25) + 0.05);
+  }
+
+  function round() {
+    var t = ctx.currentTime + 0.15, total = 0;
+    for (var i = 0; i < TUNE.length; i++) {
+      var d = TUNE[i][1] * BEAT;
+      ping(TUNE[i][0], t + total, d * 0.95);
+      total += d;
+    }
+    timer = setTimeout(round, (total + 1.4) * 1000);
+  }
+
+  return {
+    start: function () {
+      if (playing) return;
+      playing = true;
+      if (hasFile) {
+        el.play().catch(function () { hasFile = false; if (playing) Music.start(); });
+        return;
+      }
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { playing = false; return; }
+      if (!ctx) ctx = new AC();
+      if (ctx.state === 'suspended') ctx.resume();
+      round();
+    },
+    stop: function () {
+      playing = false;
+      el.pause();
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (ctx) ctx.close(), ctx = null;
+    },
+    // 换歌：从信那一幕开始换成《剩下的盛夏》
+    switchTo: function (src) {
+      if (el.src.indexOf(src) !== -1) return;
+      var wasPlaying = playing;
+      this.stop();
+      el = new Audio(src);
+      el.loop = true; el.volume = .45;
+      hasFile = true;
+      el.addEventListener('error', function () { hasFile = false; });
+      if (wasPlaying) this.start();
+    },
+    isPlaying: function () { return playing; }
+  };
+})();
+
+
+(function () {
+
+  var curtain   = document.getElementById('curtain');
+  var sceneEgg  = document.getElementById('sceneEgg');
+  var sceneTtl  = document.getElementById('sceneTitle');
+  var egg       = document.getElementById('egg');
+  var flash     = document.getElementById('flash');
+  var hint      = document.getElementById('hint');
+  var hintText  = document.getElementById('hintText');
+
+  // 暗屏 1.2 秒再亮起
+  function lift() {
+    setTimeout(function () {
+      curtain.classList.add('lifted');
+      sceneEgg.classList.add('lit');
+    }, 1200);
+  }
+  if (document.readyState === 'complete') lift();
+  else window.addEventListener('load', lift);
+
+  var steps = ['再敲一下', '羊羊要孵出来了？', ''];
+  var step = 0;
+
+  // 音乐开关：手机浏览器不允许网页自己放音乐，所以第一次敲蛋时顺便把它打开
+  var btn = document.getElementById('musicBtn');
+  function syncBtn() {
+    var on = Music.isPlaying();
+    btn.classList.toggle('off', !on);
+    btn.setAttribute('aria-label', on ? '关闭音乐' : '打开音乐');
+  }
+  btn.addEventListener('click', function () {
+    if (Music.isPlaying()) Music.stop(); else Music.start();
+    syncBtn();
+  });
+
+
+  egg.addEventListener('click', function () {
+    if (step >= 3) return;
+    step++;
+    egg.setAttribute('data-step', String(step));
+
+    if (step === 1) {
+      Music.start();
+      btn.classList.add('shown');
+      syncBtn();
+    }
+
+    if (step < 3) {
+      hintText.textContent = steps[step - 1];
+      return;
+    }
+
+    // 第三下：长大到最大后裂开，白屏盖上来
+    hint.style.opacity = '0';
+    egg.setAttribute('aria-label', '蛋裂开了');
+    setTimeout(function () { sceneEgg.classList.add('cracked'); }, 900);
+    setTimeout(function () { flash.classList.add('on'); }, 1500);
+    // 白屏停 1 秒，再露出写了字的那一页
+    setTimeout(function () {
+      sceneEgg.classList.remove('active');
+      sceneTtl.classList.add('active', 'lit');
+      flash.classList.remove('on');
+    }, 3050);
+  });
+
+  // ---- 幕与幕之间：下滑 / 滚轮 / 点空白处都能进下一幕 ----
+  var order = ['sceneTitle', 'sceneVoice', 'sceneGift', 'sceneLetter', 'sceneMap', 'sceneDressup', 'sceneAlbum', 'sceneGuestbook'];
+  var idx = 0;
+  var busy = false;
+
+  function go(n) {
+    if (busy || n < 0 || n >= order.length || n === idx) return;
+    busy = true;
+    var from = document.getElementById(order[idx]);
+    var to = document.getElementById(order[n]);
+    from.classList.remove('active', 'lit');
+    to.classList.add('active');
+    // 让浏览器先画一帧，过渡才会跑起来
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { to.classList.add('lit'); });
+    });
+    idx = n;
+    // 从信那一幕开始换成《剩下的盛夏》，一直循环到最后；回到信之前的几幕换回生日歌
+    if (n >= order.indexOf('sceneLetter')) {
+      Music.switchTo('audio/summer.mp3');
+    } else {
+      Music.switchTo('audio/bgm.mp3');
+    }
+    setTimeout(function () { busy = false; }, 700);
+  }
+  function next() { go(idx + 1); }
+  function prev() { go(idx - 1); }
+
+  // 当前这一幕里可滚动的内容（信、地图）——没滚到头就先让它自己滚
+  function scrollableInCurrent() {
+    var el = document.getElementById(order[idx]);
+    if (!el) return null;
+    var c = el.querySelector('.letter, .map-wrap, .gb-wrap');
+    return (c && c.scrollHeight > c.clientHeight + 2) ? c : null;
+  }
+  function blockedByScroll(dir) {
+    var c = scrollableInCurrent();
+    if (!c) return false;
+    if (dir > 0) return (c.scrollTop + c.clientHeight < c.scrollHeight - 1); // 还能往下滚
+    return (c.scrollTop > 1); // 还能往上滚
+  }
+
+  var y0 = null;
+  document.addEventListener('touchstart', function (e) {
+    y0 = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (y0 === null) return;
+    var dy = e.changedTouches[0].clientY - y0;
+    y0 = null;
+    if (Date.now() - lastDragEnd < 400) return;
+    if (Math.abs(dy) < 45) return;
+    var dir = dy < 0 ? 1 : -1;
+    if (blockedByScroll(dir)) return;
+    if (dir > 0) next(); else prev();
+  }, { passive: true });
+
+  var wheelLock = 0;
+  document.addEventListener('wheel', function (e) {
+    if (Math.abs(e.deltaY) < 12) return;
+    var dir = e.deltaY > 0 ? 1 : -1;
+    if (blockedByScroll(dir)) { wheelLock = Date.now(); return; }
+    var now = Date.now();
+    if (now - wheelLock < 700) return;
+    wheelLock = now;
+    if (dir > 0) next(); else prev();
+  }, { passive: true });
+
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') next();
+    if (e.key === 'ArrowUp' || e.key === 'PageUp') prev();
+  });
+
+  // ---- 第四幕：开盖 ----
+  var gift = document.getElementById('gift');
+  var giftBtn = document.getElementById('giftBtn');
+  var giftHint = document.getElementById('giftHint');
+  giftBtn.addEventListener('click', function () {
+    if (gift.classList.contains('opened')) return;
+    gift.classList.add('opened');
+    giftBtn.setAttribute('aria-label', '礼物盒已经打开了');
+    giftHint.style.opacity = '0';
+    setTimeout(function () {
+      document.getElementById('giftCaption').classList.add('show');
+    }, 1500);
+  });
+
+  // 点信封 → 进入信那一幕（并在 go() 里自动切成《剩下的盛夏》）
+  var giftEnv = document.getElementById('giftEnv');
+  giftEnv.addEventListener('click', function () {
+    if (!gift.classList.contains('opened')) return;
+    go(order.indexOf('sceneLetter'));
+  });
+
+  // ---- 第八幕：换装小游戏（自由拖动）----
+  var lastDragEnd = 0;
+  (function () {
+    var play = document.getElementById('playArea');
+    var tray = document.getElementById('tray');
+    if (!play || !tray) return;
+    var zTop = 10;
+    var drag = null; // {el, dx, dy}
+
+    function vmin(n) {
+      return n * Math.min(window.innerWidth, window.innerHeight) / 100;
+    }
+    // 把 clientX/Y 换成相对 play 的坐标
+    function toLocal(cx, cy) {
+      var r = play.getBoundingClientRect();
+      return { x: cx - r.left, y: cy - r.top };
+    }
+    function startDrag(el, cx, cy, grabX, grabY) {
+      drag = { el: el, dx: grabX, dy: grabY };
+      el.classList.add('grabbing');
+      el.style.zIndex = (++zTop);
+      moveTo(cx, cy);
+    }
+    function moveTo(cx, cy) {
+      if (!drag) return;
+      var p = toLocal(cx, cy);
+      drag.el.style.left = (p.x - drag.dx) + 'px';
+      drag.el.style.top = (p.y - drag.dy) + 'px';
+    }
+    function endDrag() {
+      if (!drag) return;
+      drag.el.classList.remove('grabbing');
+      drag = null;
+      lastDragEnd = Date.now();
+    }
+
+    // 从收纳栏拖出 → 生成一件可拖动的衣服
+    tray.querySelectorAll('.tray-item').forEach(function (item) {
+      item.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        var clone = document.createElement('img');
+        clone.src = item.src;
+        clone.className = 'drag-clone';
+        clone.style.width = vmin(parseFloat(item.dataset.w || '20')) + 'px';
+        play.appendChild(clone);
+        // 生成后以中心跟随手指
+        var w = clone.offsetWidth || vmin(parseFloat(item.dataset.w || '20'));
+        var h = clone.offsetHeight || w;
+        attachCloneHandlers(clone);
+        startDrag(clone, e.clientX, e.clientY, w / 2, h / 2);
+        clone.setPointerCapture && clone.setPointerCapture(e.pointerId);
+      });
+    });
+
+    function attachCloneHandlers(clone) {
+      clone.addEventListener('pointerdown', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var r = clone.getBoundingClientRect();
+        attachActive(clone, e.pointerId);
+        startDrag(clone, e.clientX, e.clientY, e.clientX - r.left, e.clientY - r.top);
+        clone.setPointerCapture && clone.setPointerCapture(e.pointerId);
+      });
+      // 双击移除单件
+      clone.addEventListener('dblclick', function () { clone.remove(); });
+    }
+
+    function attachActive(el, pid) {
+      function mv(e) { if (e.pointerId === pid) moveTo(e.clientX, e.clientY); }
+      function up(e) {
+        if (e.pointerId !== pid) return;
+        endDrag();
+        el.removeEventListener('pointermove', mv);
+        el.removeEventListener('pointerup', up);
+        el.removeEventListener('pointercancel', up);
+      }
+      el.addEventListener('pointermove', mv);
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+    }
+    // 刚从收纳栏生成时，也要挂上移动/抬起（用生成时的 pointerId）
+    tray.addEventListener('pointerdown', function (e) {
+      if (!e.target.classList.contains('tray-item')) return;
+      var clone = play.lastElementChild;
+      if (clone && clone.classList.contains('drag-clone')) attachActive(clone, e.pointerId);
+    });
+
+    document.getElementById('resetDressup').addEventListener('click', function () {
+      play.querySelectorAll('.drag-clone').forEach(function (c) { c.remove(); });
+    });
+  })();
+
+  // ---- 换好了 → toast → 进入相册 ----
+  var doneBtn = document.getElementById('doneDressup');
+  var toast = document.getElementById('toast');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      toast.classList.add('show');
+      setTimeout(function () { toast.classList.remove('show'); }, 1900);
+      setTimeout(function () { go(order.indexOf('sceneAlbum')); }, 2000);
+    });
+  }
+
+  // ---- 第九幕：相册（方布丁封面，向左平摊翻页，可前可后）----
+  (function () {
+    var book = document.getElementById('book');
+    var cover = document.getElementById('bookCover');
+    var hintText = document.getElementById('albumHintText');
+    if (!book || !cover) return;
+    var backCover = book.querySelector('.back-cover');
+    var leavesBox = document.getElementById('leaves');
+
+    // 照片清单（竖图 V 每张一页；横图 H 两张拼一页）
+    var PHOTOS = [{f:"images/photos/01.jpg",o:"V"},{f:"images/photos/02.jpg",o:"H"},{f:"images/photos/03.jpg",o:"V"},{f:"images/photos/04.jpg",o:"V"},{f:"images/photos/05.jpg",o:"H"},{f:"images/photos/06.jpg",o:"V"},{f:"images/photos/07.jpg",o:"V"},{f:"images/photos/08.jpg",o:"V"},{f:"images/photos/09.png",o:"V"},{f:"images/photos/10.jpg",o:"V"},{f:"images/photos/11.jpg",o:"V"},{f:"images/photos/12.jpg",o:"V"},{f:"images/photos/13.jpg",o:"V"},{f:"images/photos/14.jpg",o:"H"},{f:"images/photos/15.jpg",o:"V"},{f:"images/photos/16.jpg",o:"V"},{f:"images/photos/17.jpg",o:"V"},{f:"images/photos/18.jpg",o:"V"},{f:"images/photos/19.jpg",o:"V"},{f:"images/photos/20.jpg",o:"V"},{f:"images/photos/21.jpg",o:"V"},{f:"images/photos/22.jpg",o:"V"},{f:"images/photos/23.jpg",o:"H"},{f:"images/photos/24.jpg",o:"H"},{f:"images/photos/25.jpg",o:"V"},{f:"images/photos/26.jpg",o:"V"},{f:"images/photos/27.jpg",o:"V"},{f:"images/photos/28.png",o:"V"},{f:"images/photos/29.jpg",o:"V"},{f:"images/photos/30.jpg",o:"V"},{f:"images/photos/31.jpg",o:"H"},{f:"images/photos/32.jpg",o:"V"},{f:"images/photos/33.jpg",o:"V"},{f:"images/photos/34.jpg",o:"V"},{f:"images/photos/35.jpg",o:"V"},{f:"images/photos/36.jpg",o:"V"},{f:"images/photos/37.jpg",o:"H"},{f:"images/photos/38.jpg",o:"H"},{f:"images/photos/39.jpg",o:"V"},{f:"images/photos/40.png",o:"H"},{f:"images/photos/41.jpg",o:"V"},{f:"images/photos/42.jpg",o:"H"},{f:"images/photos/43.jpg",o:"V"},{f:"images/photos/44.jpg",o:"V"},{f:"images/photos/45.jpg",o:"H"},{f:"images/photos/46.jpg",o:"V"},{f:"images/photos/47.jpg",o:"V"},{f:"images/photos/48.jpg",o:"V"},{f:"images/photos/49.jpg",o:"V"},{f:"images/photos/50.jpg",o:"V"},{f:"images/photos/51.jpg",o:"V"},{f:"images/photos/52.jpg",o:"H"},{f:"images/photos/53.jpg",o:"H"},{f:"images/photos/54.jpg",o:"H"},{f:"images/photos/55.jpg",o:"H"},{f:"images/photos/56.jpg",o:"H"},{f:"images/photos/57.jpg",o:"H"},{f:"images/photos/58.jpg",o:"H"},{f:"images/photos/59.jpg",o:"H"},{f:"images/photos/60.jpg",o:"V"},{f:"images/photos/61.jpg",o:"H"},{f:"images/photos/62.jpg",o:"H"},{f:"images/photos/63.jpg",o:"V"},{f:"images/photos/64.jpg",o:"H"},{f:"images/photos/65.jpg",o:"H"},{f:"images/photos/66.jpg",o:"H"},{f:"images/photos/67.jpg",o:"V"}];
+
+    // 双人照编号（放到后面）
+    var DBL = { '04':1, '14':1, '21':1, '23':1, '29':1, '31':1, '35':1, '37':1, '45':1,
+                '50':1, '51':1, '52':1, '53':1, '54':1, '55':1, '56':1, '57':1, '58':1, '59':1, '60':1, '61':1, '62':1, '63':1, '64':1,
+                '65':1, '66':1, '67':1 };
+    function numOf(p) { return p.f.replace(/^.*\//, '').replace(/\.(jpg|jpeg|png)$/i, ''); }
+    var singles = PHOTOS.filter(function (p) { return !DBL[numOf(p)]; });
+    var allDbl  = PHOTOS.filter(function (p) { return DBL[numOf(p)]; });
+    // 新加的双人图（50~64）紧跟 49 之后；原来的双人图排在它们后面；65~67 放到最末尾（67 为整本最后一页）
+    var newDbl  = allDbl.filter(function (p) { var n = +numOf(p); return n >= 50 && n < 65; });
+    var oldDbl  = allDbl.filter(function (p) { var n = +numOf(p); return n < 50 && n !== 45; });
+    var lastDbl = allDbl.filter(function (p) { return +numOf(p) >= 65; });
+    // 把 45 挪到 64 后面，让两张横图（64、45）拼成同一页
+    newDbl = newDbl.concat(allDbl.filter(function (p) { return numOf(p) === '45'; }));
+
+    // 竖图单张成一页，横图两两拼一页（单人、双人各自成组、各自配对）
+    function buildUnits(list) {
+      var out = [], pendingH = null;
+      list.forEach(function (p) {
+        if (p.o === 'H') {
+          if (pendingH) { out.push({ pair: true, imgs: [pendingH, p.f] }); pendingH = null; }
+          else { pendingH = p.f; }
+        } else { out.push({ pair: false, imgs: [p.f] }); }
+      });
+      if (pendingH) out.push({ pair: true, imgs: [pendingH] });
+      return out;
+    }
+    var units = buildUnits(singles).concat(buildUnits(newDbl), buildUnits(oldDbl), buildUnits(lastDbl));
+
+
+    function faceHtml(unit, cls) {
+      if (!unit) return '<div class="face ' + cls + '"></div>';
+      var imgs = unit.imgs.map(function (s) {
+        var n = s.replace(/^.*\//, '').replace(/\.(jpg|jpeg|png)$/i, '');
+        return '<span class="ph-wrap"><img src="' + s + '" alt=""><span class="ph-num">' + n + '</span></span>';
+      }).join('');
+      return '<div class="face ' + cls + (unit.pair ? ' pair' : '') + '">' + imgs + '</div>';
+    }
+    var html = '';
+    for (var u = 0; u < units.length; u += 2) {
+      html += '<div class="leaf" data-i="' + (u / 2) + '">' +
+              faceHtml(units[u], 'front') + faceHtml(units[u + 1], 'back') + '</div>';
+    }
+    leavesBox.innerHTML = html;
+
+    var leaves = Array.prototype.slice.call(book.querySelectorAll('.leaf'));
+    var opened = false, turned = 0, sealed = false;
+
+
+    function restack() {
+      if (backCover) backCover.style.zIndex = 10;
+      leaves.forEach(function (lf, i) {
+        // 已翻走的落在左边，后翻的压在上面；未翻的在右边，靠前的在上面
+        lf.style.zIndex = (i < turned) ? (60 + i) : (40 - i);
+      });
+      // 合上封面时封面最上；翻开后压到底下；合到封底时封面(背面=干净布丁)升到最顶，盖住左边内页
+      cover.style.zIndex = sealed ? 200 : (opened ? 20 : 100);
+    }
+    restack();
+
+    cover.addEventListener('click', function (e) {
+      if (opened) return;
+      e.stopPropagation();
+      opened = true;
+      book.classList.add('opened');
+      cover.classList.add('open');
+      if (hintText) hintText.textContent = '点右边往后翻，点左边往回翻';
+      restack();
+    });
+
+    book.addEventListener('click', function (e) {
+      if (!opened) return;
+      var r = book.getBoundingClientRect();
+      var toRight = (e.clientX - r.left) > r.width / 2;
+      if (toRight) {
+        if (sealed) return;              // 已经合到封底了，右边不再响应
+        // 翻到最后一页后，再点右边：封底往左合上（停在干净布丁）
+        if (turned >= leaves.length) {
+          sealed = true;
+          book.classList.add('sealed');
+          if (hintText) hintText.textContent = '点左边往前翻';
+          restack();
+          return;
+        }
+        // 往后翻
+        leaves[turned].classList.add('turned');
+        turned++;
+      } else {
+        // 已合到封底：点左边先把封底掀开，回到最后一页
+        if (sealed) {
+          sealed = false;
+          book.classList.remove('sealed');
+          if (hintText) hintText.textContent = '点右边往后翻，点左边往回翻';
+          restack();
+          return;
+        }
+        // 往回翻；已在第一页则合上封面
+        if (turned > 0) {
+          turned--;
+          leaves[turned].classList.remove('turned');
+        } else {
+          opened = false;
+          cover.classList.remove('open');
+          book.classList.remove('opened');
+          if (hintText) hintText.textContent = '点一下翻开相册';
+        }
+      }
+      restack();
+    });
+  })();
+
+  // ---- 第十幕：留言簿 ----
+  (function () {
+    // 云端配置：去 LeanCloud 建应用后，把三个值填进来（填了就自动云端保存，双方可见）
+    var CB = { env: 'zyjlq271199-d7g7tt63tb09e6f99' }; // 腾讯云开发环境ID
+    var PASSCODE = '271199'; // 写留言口令（需与云函数里的一致）
+
+    var listEl = document.getElementById('gbList');
+    var textEl = document.getElementById('gbText');
+    var fileEl = document.getElementById('gbFile');
+    var passEl = document.getElementById('gbPass');
+    var sendEl = document.getElementById('gbSend');
+    var noteEl = document.getElementById('gbNote');
+    var prevEl = document.getElementById('gbPreview');
+    var wrapEl = document.getElementById('gbWrap');
+    var fabEl = document.getElementById('gbFab');
+    var maskEl = document.getElementById('gbMask');
+    var composeEl = document.getElementById('gbCompose');
+    var closeEl = document.getElementById('gbClose');
+    var dateEl = document.getElementById('gbDate');
+    var latestEl = document.getElementById('gbLatest');
+    if (!listEl) return;
+
+    // 写留言面板：点浮动按钮弹出、点关闭或遮罩收起
+    function openCompose() { maskEl.classList.add('show'); composeEl.classList.add('show'); setTimeout(function () { textEl.focus(); }, 300); }
+    function closeCompose() { maskEl.classList.remove('show'); composeEl.classList.remove('show'); }
+    fabEl.addEventListener('click', openCompose);
+    closeEl.addEventListener('click', closeCompose);
+    maskEl.addEventListener('click', closeCompose);
+
+    var useCloud = !!(CB.env && window.cloudbase);
+    var app = null, db = null, cloudReady = Promise.resolve(false);
+    if (useCloud) {
+      try {
+        app = cloudbase.init({ env: CB.env });
+        var auth = app.auth({ persistence: 'local' });
+        db = app.database();
+        var anon = auth.anonymousAuthProvider ? auth.anonymousAuthProvider().signIn()
+                 : (auth.signInAnonymously ? auth.signInAnonymously() : Promise.reject(new Error('no anon')));
+        cloudReady = anon.then(function () { return true; }).catch(function () { useCloud = false; return false; });
+      } catch (e) { useCloud = false; }
+    }
+    noteEl.textContent = useCloud ? '' : '（当前为本机预览模式：留言只存在这台设备上）';
+
+    var pendingBlob = null, pendingURL = '';
+    // 把图片压到最长边 1280，减小体积
+    function resize(file) {
+      return new Promise(function (res) {
+        var img = new Image(), url = URL.createObjectURL(file);
+        img.onload = function () {
+          var m = 1280, w = img.width, h = img.height;
+          if (w > m || h > m) { if (w > h) { h = h * m / w; w = m; } else { w = w * m / h; h = m; } }
+          var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+          cv.getContext('2d').drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          cv.toBlob(function (b) { res({ blob: b, url: cv.toDataURL('image/jpeg', .85) }); }, 'image/jpeg', .85);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); res(null); };
+        img.src = url;
+      });
+    }
+    fileEl.addEventListener('change', function () {
+      var f = fileEl.files[0]; if (!f) return;
+      resize(f).then(function (r) {
+        if (!r) return;
+        pendingBlob = r.blob; pendingURL = r.url;
+        prevEl.src = r.url; prevEl.style.display = 'block';
+      });
+    });
+    /*GBMORE*/
+    function fmt(t) {
+      var d = new Date(t), p = function (n) { return (n < 10 ? '0' : '') + n; };
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+    function dayStr(t) {
+      var d = new Date(t), p = function (n) { return (n < 10 ? '0' : '') + n; };
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+    function render(items) {
+      listEl.innerHTML = '';
+      if (!items.length) { listEl.innerHTML = '<p class="gb-empty">还没有留言，来写第一条吧~</p>'; return; }
+      items.forEach(function (m) {
+        var card = document.createElement('div'); card.className = 'gb-card';
+        card.setAttribute('data-day', dayStr(m.time));
+        if (m.text) { var t = document.createElement('div'); t.className = 'gb-text'; t.textContent = m.text; card.appendChild(t); }
+        if (m.img) { var im = document.createElement('img'); im.src = m.img; im.loading = 'lazy'; card.appendChild(im); }
+        var meta = document.createElement('div'); meta.className = 'gb-meta'; meta.textContent = fmt(m.time);
+        card.appendChild(meta); listEl.appendChild(card);
+      });
+    }
+    function loadLocal() { try { return JSON.parse(localStorage.getItem('gb_msgs') || '[]'); } catch (e) { return []; } }
+    function saveLocal(a) { try { localStorage.setItem('gb_msgs', JSON.stringify(a)); } catch (e) {} }
+    function refresh() {
+      if (useCloud) {
+        cloudReady.then(function (ok) {
+          if (!ok) { render(loadLocal().slice().reverse()); return; }
+          app.callFunction({ name: 'guestbook', data: { action: 'list' } }).then(function (res) {
+            var r = (res && res.result) || {};
+            if (r.ok && r.items) {
+              render(r.items.map(function (m) { return { text: m.text || '', img: m.img || '', time: m.time || Date.now() }; }));
+            } else { render(loadLocal().slice().reverse()); }
+          }).catch(function () { render(loadLocal().slice().reverse()); });
+        });
+      } else { render(loadLocal().slice().reverse()); }
+    }
+    function submit() {
+      var text = (textEl.value || '').trim();
+      if (!text && !pendingBlob) { noteEl.textContent = '写点什么，或加张图片吧~'; return; }
+      if (passEl.value !== PASSCODE) { noteEl.textContent = '口令不对哦，写留言需要正确口令'; return; }
+      sendEl.disabled = true; noteEl.textContent = '贴上去中…';
+      var done = function () {
+        textEl.value = ''; pendingBlob = null; pendingURL = ''; prevEl.style.display = 'none'; prevEl.src = '';
+        fileEl.value = ''; sendEl.disabled = false; passEl.value = ''; noteEl.textContent = '贴好啦~ ♡';
+        closeCompose(); refresh(); wrapEl.scrollTop = 0;
+      };
+      var fail = function (e) { sendEl.disabled = false; noteEl.textContent = '没贴成功，再试一下：' + (e && e.message ? e.message : ''); };
+      if (useCloud) {
+        cloudReady.then(function (ok) {
+          if (!ok) { fail(new Error('云端未就绪')); return; }
+          var callAdd = function (fileID) {
+            return app.callFunction({ name: 'guestbook', data: { action: 'add', text: text, imageFileID: fileID || '', passcode: passEl.value } })
+              .then(function (res) {
+                var r = (res && res.result) || {};
+                if (!r.ok) { throw new Error(r.err === 'bad-pass' ? '口令不对' : (r.err || '失败')); }
+              });
+          };
+          if (pendingBlob) {
+            app.uploadFile({ cloudPath: 'gb/' + Date.now() + '-' + Math.floor(Math.random() * 1e4) + '.jpg', filePath: pendingBlob })
+              .then(function (up) { return callAdd(up.fileID); }).then(done).catch(fail);
+          } else { callAdd('').then(done).catch(fail); }
+        });
+      } else {
+        var a = loadLocal(); a.push({ text: text, img: pendingURL, time: Date.now() }); saveLocal(a); done();
+      }
+    }
+    sendEl.addEventListener('click', submit);
+
+    // 按日期跳转：滚到那天（或那之前最近一天）的第一条
+    dateEl.addEventListener('change', function () {
+      var v = dateEl.value; if (!v) return;
+      var cards = listEl.querySelectorAll('.gb-card');
+      var target = null;
+      for (var i = 0; i < cards.length; i++) {
+        var d = cards[i].getAttribute('data-day');
+        if (d === v) { target = cards[i]; break; }
+        if (d < v) { target = cards[i]; break; } // 列表新→旧，第一条早于所选的即最接近
+      }
+      if (!target && cards.length) target = cards[cards.length - 1];
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
+      } else { noteEl.textContent = '那天还没有留言哦'; }
+    });
+    latestEl.addEventListener('click', function () { wrapEl.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    refresh();
+  })();
+})();
+
+
+
+
+
+
+</script>
+</body>
+</html>
+
+
